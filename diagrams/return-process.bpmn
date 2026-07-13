@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_ReturnFlow"
+  targetNamespace="https://github.com/example/return-flow">
+  <bpmn:process id="Process_Return" name="Обработка возврата маркетплейса" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Request" name="Заявка создана">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_Validate" name="Проверить заказ и правила">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Eligible" name="Возврат разрешён?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Approve</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Отказ">
+      <bpmn:incoming>Flow_Reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="Task_CreateShipment" name="Создать обратную доставку">
+      <bpmn:incoming>Flow_Approve</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_Handover" name="Передать товар">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:receiveTask id="Task_Receive" name="Получить товар на складе">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:userTask id="Task_Inspect" name="Проверить позиции">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Accepted" name="Есть принятые позиции?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoRefund</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Refund</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_NoRefund" name="Завершено без выплаты">
+      <bpmn:incoming>Flow_NoRefund</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="Task_Refund" name="Вернуть деньги">
+      <bpmn:incoming>Flow_Refund</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Completed" name="Возврат завершён">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Request" targetRef="Task_Validate" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Validate" targetRef="Gateway_Eligible" />
+    <bpmn:sequenceFlow id="Flow_Reject" name="Нет" sourceRef="Gateway_Eligible" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="Flow_Approve" name="Да" sourceRef="Gateway_Eligible" targetRef="Task_CreateShipment" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CreateShipment" targetRef="Task_Handover" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Handover" targetRef="Task_Receive" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Receive" targetRef="Task_Inspect" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Inspect" targetRef="Gateway_Accepted" />
+    <bpmn:sequenceFlow id="Flow_NoRefund" name="Нет" sourceRef="Gateway_Accepted" targetRef="EndEvent_NoRefund" />
+    <bpmn:sequenceFlow id="Flow_Refund" name="Да" sourceRef="Gateway_Accepted" targetRef="Task_Refund" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Refund" targetRef="EndEvent_Completed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Return">
+    <bpmndi:BPMNPlane id="BPMNPlane_Return" bpmnElement="Process_Return">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_Request">
+        <dc:Bounds x="120" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Validate" bpmnElement="Task_Validate">
+        <dc:Bounds x="210" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Eligible" bpmnElement="Gateway_Eligible" isMarkerVisible="true">
+        <dc:Bounds x="390" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Rejected" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="397" y="270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_CreateShipment" bpmnElement="Task_CreateShipment">
+        <dc:Bounds x="500" y="120" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Handover" bpmnElement="Task_Handover">
+        <dc:Bounds x="690" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Receive" bpmnElement="Task_Receive">
+        <dc:Bounds x="870" y="120" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Inspect" bpmnElement="Task_Inspect">
+        <dc:Bounds x="1060" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Accepted" bpmnElement="Gateway_Accepted" isMarkerVisible="true">
+        <dc:Bounds x="1240" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_NoRefund" bpmnElement="EndEvent_NoRefund">
+        <dc:Bounds x="1247" y="270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Refund" bpmnElement="Task_Refund">
+        <dc:Bounds x="1350" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Completed" bpmnElement="EndEvent_Completed">
+        <dc:Bounds x="1530" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_1" bpmnElement="Flow_1"><di:waypoint x="156" y="160" /><di:waypoint x="210" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_2" bpmnElement="Flow_2"><di:waypoint x="330" y="160" /><di:waypoint x="390" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Reject" bpmnElement="Flow_Reject"><di:waypoint x="415" y="185" /><di:waypoint x="415" y="270" /><bpmndi:BPMNLabel><dc:Bounds x="422" y="215" width="22" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Approve" bpmnElement="Flow_Approve"><di:waypoint x="440" y="160" /><di:waypoint x="500" y="160" /><bpmndi:BPMNLabel><dc:Bounds x="458" y="142" width="18" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_3" bpmnElement="Flow_3"><di:waypoint x="630" y="160" /><di:waypoint x="690" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_4" bpmnElement="Flow_4"><di:waypoint x="810" y="160" /><di:waypoint x="870" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_5" bpmnElement="Flow_5"><di:waypoint x="1000" y="160" /><di:waypoint x="1060" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_6" bpmnElement="Flow_6"><di:waypoint x="1180" y="160" /><di:waypoint x="1240" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_NoRefund" bpmnElement="Flow_NoRefund"><di:waypoint x="1265" y="185" /><di:waypoint x="1265" y="270" /><bpmndi:BPMNLabel><dc:Bounds x="1272" y="215" width="22" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Refund" bpmnElement="Flow_Refund"><di:waypoint x="1290" y="160" /><di:waypoint x="1350" y="160" /><bpmndi:BPMNLabel><dc:Bounds x="1308" y="142" width="18" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_7" bpmnElement="Flow_7"><di:waypoint x="1470" y="160" /><di:waypoint x="1530" y="160" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+
