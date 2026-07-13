@@ -1,0 +1,389 @@
+openapi: 3.0.3
+info:
+  title: ReturnFlow API
+  version: 1.0.0
+  description: Учебный API для управления возвратами товара.
+
+servers:
+  - url: https://api.example.com/return-flow/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /returns:
+    post:
+      summary: Создать заявку на возврат
+      operationId: createReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReturnRequest'
+      responses:
+        '201':
+          description: Заявка создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /returns/{returnId}:
+    get:
+      summary: Получить заявку
+      operationId: getReturn
+      parameters:
+        - $ref: '#/components/parameters/ReturnId'
+      responses:
+        '200':
+          description: Заявка найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /returns/{returnId}/cancel:
+    post:
+      summary: Отменить заявку
+      operationId: cancelReturn
+      parameters:
+        - $ref: '#/components/parameters/ReturnId'
+      responses:
+        '200':
+          description: Заявка отменена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /returns/{returnId}/delivery-status:
+    post:
+      summary: Обновить статус обратной доставки
+      operationId: updateDeliveryStatus
+      parameters:
+        - $ref: '#/components/parameters/ReturnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryStatusRequest'
+      responses:
+        '200':
+          description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /returns/{returnId}/inspection:
+    post:
+      summary: Сохранить результат проверки на складе
+      operationId: createInspection
+      parameters:
+        - $ref: '#/components/parameters/ReturnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionRequest'
+      responses:
+        '200':
+          description: Проверка сохранена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /returns/{returnId}/payment-result:
+    post:
+      summary: Сохранить результат возврата денег
+      operationId: updatePaymentResult
+      parameters:
+        - $ref: '#/components/parameters/ReturnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentResultRequest'
+      responses:
+        '200':
+          description: Результат сохранён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ReturnId:
+      name: returnId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CreateReturnRequest:
+      type: object
+      required: [orderId, handoverMethod, handoverLocationId, items]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        handoverMethod:
+          type: string
+          enum: [COURIER, PICKUP_POINT]
+        handoverLocationId:
+          type: string
+          format: uuid
+          description: Идентификатор сохранённого адреса или пункта приёма.
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateReturnItem'
+
+    CreateReturnItem:
+      type: object
+      required: [orderItemId, quantity, reasonCode]
+      properties:
+        orderItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        reasonCode:
+          type: string
+          enum: [DEFECT, DAMAGED, WRONG_ITEM, NOT_FIT, OTHER]
+        comment:
+          type: string
+          maxLength: 500
+        photoUrl:
+          type: string
+          format: uri
+
+    DeliveryStatusRequest:
+      type: object
+      required: [deliveryId, status, changedAt]
+      properties:
+        deliveryId:
+          type: string
+        status:
+          type: string
+          enum: [IN_TRANSIT, RECEIVED]
+        changedAt:
+          type: string
+          format: date-time
+
+    InspectionRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InspectionItem'
+
+    InspectionItem:
+      type: object
+      required:
+        - returnItemId
+        - receivedQuantity
+        - acceptedQuantity
+        - result
+      properties:
+        returnItemId:
+          type: string
+          format: uuid
+        receivedQuantity:
+          type: integer
+          minimum: 0
+        acceptedQuantity:
+          type: integer
+          minimum: 0
+        result:
+          type: string
+          enum: [ACCEPTED, PARTIAL, REJECTED]
+        rejectionReason:
+          type: string
+          maxLength: 500
+
+    PaymentResultRequest:
+      type: object
+      required: [paymentRefundId, status]
+      properties:
+        paymentRefundId:
+          type: string
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+        errorMessage:
+          type: string
+          maxLength: 500
+
+    ReturnResponse:
+      type: object
+      required:
+        - id
+        - customerId
+        - orderId
+        - status
+        - handoverMethod
+        - items
+        - refundAmount
+        - currency
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReturnStatus'
+        handoverMethod:
+          type: string
+          enum: [COURIER, PICKUP_POINT]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnItem'
+        refundAmount:
+          type: number
+          format: double
+          minimum: 0
+        currency:
+          type: string
+          enum: [RUB]
+        rejectionReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReturnItem:
+      type: object
+      required: [id, orderItemId, itemName, quantity, reasonCode, unitPrice]
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderItemId:
+          type: string
+          format: uuid
+        itemName:
+          type: string
+        quantity:
+          type: integer
+        reasonCode:
+          type: string
+        unitPrice:
+          type: number
+          format: double
+
+    ReturnStatus:
+      type: string
+      enum:
+        - CREATED
+        - APPROVED
+        - REJECTED
+        - WAITING_FOR_ITEM
+        - IN_TRANSIT
+        - RECEIVED
+        - CHECKED
+        - REFUND_IN_PROGRESS
+        - COMPLETED
+        - COMPLETED_WITHOUT_REFUND
+        - CANCELLED
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Ошибка в данных запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Нет доступа
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Заявка не найдена
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Действие невозможно в текущем статусе
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Внешняя система временно недоступна
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
